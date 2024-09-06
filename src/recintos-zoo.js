@@ -31,8 +31,12 @@ class RecintosZoo {
 
     filtraRecintosPorBioma(especie) {
         const biomasPermitidos = this.animaisPermitidos[especie].bioma;
-        return this.recintos.filter(recinto => biomasPermitidos.includes(recinto.bioma));
+        return this.recintos.filter(recinto => {
+            // Verifica se o bioma do recinto é exatamente igual ou inclui o bioma permitido (como "savana e rio")
+            return biomasPermitidos.some(bioma => recinto.bioma.includes(bioma));
+        });
     }
+    
 
     calculaEspacoDisponivel(recinto, especie, quantidade) {
         let espacoOcupado = recinto.animais.reduce((total, animal) => {
@@ -43,7 +47,6 @@ class RecintosZoo {
         if (recinto.animais.length > 0 && recinto.animais[0].especie !== especie) {
             espacoOcupado += 1;  // Espaço extra por ter mais de uma espécie.
         }
-    
         const espacoNecessario = this.animaisPermitidos[especie].tamanho * quantidade;
         const espacoDisponivel = recinto.tamanho - espacoOcupado;
     
@@ -97,7 +100,7 @@ class RecintosZoo {
                 return null;
             })
             .filter(recinto => recinto !== null);
-    
+        
         // Ordenar os recintos pelo número antes de retornar
         recintosViaveis.sort((a, b) => {
             const numeroA = parseInt(a.match(/Recinto (\d+)/)[1]);
@@ -111,6 +114,7 @@ class RecintosZoo {
             return { erro: "Não há recinto viável" };
         }
     }
+    
     
 
 }
