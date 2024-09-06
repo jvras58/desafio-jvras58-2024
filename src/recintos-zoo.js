@@ -60,16 +60,15 @@ class RecintosZoo {
     verificaRegrasEspecificas(recinto, especie, quantidade) {
         const animalExistente = recinto.animais[0]?.especie;
     
-        // Carnívoros só podem habitar com a mesma espécie
-        if (this.animaisPermitidos[especie].carnivoro) {
-            if (recinto.animais.length > 0 && animalExistente !== especie) {
-                return false;  // Carnívoros só com a própria espécie
-            }
+        // Impedir que herbívoros sejam adicionados a recintos com carnívoros
+        if (recinto.animais.some(animal => this.animaisPermitidos[animal.especie].carnivoro) 
+            && !this.animaisPermitidos[especie].carnivoro) {
+            return false;  // Herbívoros não podem ser colocados com carnívoros
         }
     
-        // Se já há carnívoros no recinto, nenhum outro animal pode ser adicionado
-        if (recinto.animais.some(animal => this.animaisPermitidos[animal.especie].carnivoro)) {
-            return false;  // Recinto não pode ter espécies diferentes se há carnívoros
+        // Verificar se carnívoros podem ser adicionados apenas com a própria espécie
+        if (this.animaisPermitidos[especie].carnivoro && recinto.animais.length > 0 && animalExistente !== especie) {
+            return false; // Carnívoros só podem estar com a mesma espécie
         }
     
         // Hipopótamos só podem habitar recintos com savana e rio

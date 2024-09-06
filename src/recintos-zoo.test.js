@@ -28,7 +28,6 @@ describe('Recintos do Zoologico', () => {
     });
 
     test('Deve encontrar recintos para 2 macacos', () => {
-
         const resultado = new RecintosZoo().analisaRecintos('MACACO', 2);
         expect(resultado.erro).toBeFalsy();
         expect(resultado.recintosViaveis[0]).toBe('Recinto 1 (espaço livre: 5 total: 10)');
@@ -36,6 +35,48 @@ describe('Recintos do Zoologico', () => {
         expect(resultado.recintosViaveis[2]).toBe('Recinto 3 (espaço livre: 2 total: 7)');
         expect(resultado.recintosViaveis.length).toBe(3);
     });
+
+    test('Não deve permitir adicionar 4 hipopótamos devido a falta de espaço', () => {
+        const resultado = new RecintosZoo().analisaRecintos('HIPOPOTAMO', 4);
+        expect(resultado.erro).toBe("Não há recinto viável");
+        expect(resultado.recintosViaveis).toBeFalsy();
+    });
+
+    test('Deve permitir adicionar mais 2 leões ao recinto com leão', () => {
+        const resultado = new RecintosZoo().analisaRecintos('LEAO', 2);
+        expect(resultado.erro).toBeFalsy();
+        expect(resultado.recintosViaveis[0]).toBe('Recinto 5 (espaço livre: 0 total: 9)');
+        expect(resultado.recintosViaveis.length).toBe(1);
+    });
+
+    // Novos Testes que precisam de implementação:
+
+    // test('Não deve permitir adicionar gazelas no recinto com leão', () => {
+    //     const resultado = new RecintosZoo().analisaRecintos('GAZELA', 2);
+    //     expect(resultado.erro).toBe("Não há recinto viável");
+    //     expect(resultado.recintosViaveis).toBeFalsy();
+    // });
+
+    // test('Deve permitir hipopótamos apenas no recinto 3 (savana e rio)', () => {
+    //     const resultado = new RecintosZoo().analisaRecintos('HIPOPOTAMO', 1);
+    //     expect(resultado.erro).toBeFalsy();
+    //     expect(resultado.recintosViaveis[0]).toBe('Recinto 3 (espaço livre: 3 total: 7)');
+    //     expect(resultado.recintosViaveis.length).toBe(1);
+    // });
+    
+    // test('Não deve permitir um macaco sozinho no recinto vazio', () => {
+    //     const resultado = new RecintosZoo().analisaRecintos('MACACO', 1);
+    //     expect(resultado.erro).toBe("Não há recinto viável");
+    //     expect(resultado.recintosViaveis).toBeFalsy();
+    // });
+    
+    // test('Deve permitir adicionar 2 macacos ao recinto com gazela', () => {
+    //     const resultado = new RecintosZoo().analisaRecintos('MACACO', 2);
+    //     expect(resultado.erro).toBeFalsy();
+    //     expect(resultado.recintosViaveis[0]).toBe('Recinto 3 (espaço livre: 0 total: 7)');
+    //     expect(resultado.recintosViaveis.length).toBe(1);
+    // });
+    
 
 });
 
