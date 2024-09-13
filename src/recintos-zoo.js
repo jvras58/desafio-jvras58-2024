@@ -42,7 +42,7 @@ class RecintosZoo {
         }, 0);
 
         if (recinto.animais.length > 0 && recinto.animais[0].especie !== especie) {
-            espacoOcupado += 1;  
+            espacoOcupado += 1;
         }
         const espacoNecessario = this.animaisPermitidos[especie].tamanho * quantidade;
         const espacoDisponivel = recinto.tamanho - espacoOcupado;
@@ -58,7 +58,7 @@ class RecintosZoo {
             return false;
         }
 
-        if (especie === 'HIPOPOTAMO' && recinto.bioma !== 'savana e rio') {
+        if (especie === 'HIPOPOTAMO' && recinto.bioma !== 'savana e rio' && recinto.animais.length > 0) {
             return false;
         }
 
