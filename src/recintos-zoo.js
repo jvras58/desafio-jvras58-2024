@@ -1,14 +1,9 @@
+import { openDb } from './config/db.js';
+
 class RecintosZoo {
 
     constructor() {
-        this.recintos = [
-            { numero: 1, bioma: 'savana', tamanho: 10, animais: [{ especie: 'MACACO', quantidade: 3 }] },
-            { numero: 2, bioma: 'floresta', tamanho: 5, animais: [] },
-            { numero: 3, bioma: 'savana e rio', tamanho: 7, animais: [{ especie: 'GAZELA', quantidade: 1 }] },
-            { numero: 4, bioma: 'rio', tamanho: 8, animais: [] },
-            { numero: 5, bioma: 'savana', tamanho: 9, animais: [{ especie: 'LEAO', quantidade: 1 }] }
-        ];
-
+        // Carrega a configuração de animais permitidos
         this.animaisPermitidos = {
             'LEAO': { tamanho: 3, bioma: ['savana'], carnivoro: true },
             'LEOPARDO': { tamanho: 2, bioma: ['savana'], carnivoro: true },
@@ -19,7 +14,19 @@ class RecintosZoo {
         };
     }
 
-    validaEntrada(especie, quantidade) {
+    async getRecintos() {
+        const db = await openDb();
+        // Recupera todos os recintos do banco de dados
+        return await db.all(`SELECT * FROM recintos`);
+    }
+
+    async getAnimaisPorRecinto(recintoId) {
+        const db = await openDb();
+        // Busca os animais associados a um recinto específico
+        return await db.all(`SELECT * FROM animais WHERE recinto_id = ?`, [recintoId]);
+    }
+
+    async validaEntrada(especie, quantidade) {
         if (!this.animaisPermitidos[especie]) {
             return { erro: "Animal inválido" };
         }
@@ -29,41 +36,45 @@ class RecintosZoo {
         return null;
     }
 
-    filtraRecintosPorBioma(especie) {
+    async filtraRecintosPorBioma(especie) {
+        const db = await openDb();
         const biomasPermitidos = this.animaisPermitidos[especie].bioma;
-        return this.recintos.filter(recinto => {
-            return biomasPermitidos.some(bioma => recinto.bioma.includes(bioma));
-        });
+
+        // Filtra os recintos pelo bioma permitido
+        return await db.all(`SELECT * FROM recintos WHERE bioma IN (${biomasPermitidos.map(() => '?').join(',')})`, biomasPermitidos);
     }
 
-    calculaEspacoDisponivel(recinto, especie, quantidade) {
-        let espacoOcupado = recinto.animais.reduce((total, animal) => {
+    async calculaEspacoDisponivel(recinto, especie, quantidade) {
+        const animaisNoRecinto = await this.getAnimaisPorRecinto(recinto.id);
+        let espacoOcupado = animaisNoRecinto.reduce((total, animal) => {
             return total + (this.animaisPermitidos[animal.especie].tamanho * animal.quantidade);
         }, 0);
 
-        if (recinto.animais.length > 0 && recinto.animais[0].especie !== especie) {
-            espacoOcupado += 1;
+        if (animaisNoRecinto.length > 0 && animaisNoRecinto[0].especie !== especie) {
+            espacoOcupado += 1; // Espaço extra para diferentes espécies
         }
+
         const espacoNecessario = this.animaisPermitidos[especie].tamanho * quantidade;
         const espacoDisponivel = recinto.tamanho - espacoOcupado;
 
         return espacoDisponivel >= espacoNecessario ? espacoDisponivel - espacoNecessario : null;
     }
 
-    verificaRegrasEspecificas(recinto, especie, quantidade) {
+    async verificaRegrasEspecificas(recinto, especie, quantidade) {
+        const animaisNoRecinto = await this.getAnimaisPorRecinto(recinto.id);
         const ehCarnivoro = this.animaisPermitidos[especie].carnivoro;
-        const existeCarnivoroNoRecinto = recinto.animais.some(animal => this.animaisPermitidos[animal.especie].carnivoro);
+        const existeCarnivoroNoRecinto = animaisNoRecinto.some(animal => this.animaisPermitidos[animal.especie].carnivoro);
 
-        if ((existeCarnivoroNoRecinto && !ehCarnivoro) || (!existeCarnivoroNoRecinto && ehCarnivoro && recinto.animais.length > 0)) {
+        if ((existeCarnivoroNoRecinto && !ehCarnivoro) || (!existeCarnivoroNoRecinto && ehCarnivoro && animaisNoRecinto.length > 0)) {
             return false;
         }
 
-        if (especie === 'HIPOPOTAMO' && recinto.bioma !== 'savana e rio' && recinto.animais.length > 0) {
+        if (especie === 'HIPOPOTAMO' && recinto.bioma !== 'savana e rio' && animaisNoRecinto.length > 0) {
             return false;
         }
 
         if (especie === 'MACACO') {
-            const totalMacacos = recinto.animais.reduce((total, animal) => {
+            const totalMacacos = animaisNoRecinto.reduce((total, animal) => {
                 return animal.especie === 'MACACO' ? total + animal.quantidade : total;
             }, 0);
             if (totalMacacos + quantidade < 2) {
@@ -74,24 +85,24 @@ class RecintosZoo {
         return true;
     }
 
-    analisaRecintos(especie, quantidade) {
-        const erroEntrada = this.validaEntrada(especie, quantidade);
+    async analisaRecintos(especie, quantidade) {
+        const erroEntrada = await this.validaEntrada(especie, quantidade);
         if (erroEntrada) return erroEntrada;
 
-        const recintosFiltrados = this.filtraRecintosPorBioma(especie);
-        const recintosViaveis = recintosFiltrados
-            .map(recinto => {
-                const espacoDisponivel = this.calculaEspacoDisponivel(recinto, especie, quantidade);
-                const regrasEspecificas = this.verificaRegrasEspecificas(recinto, especie, quantidade);
-                if (espacoDisponivel !== null && regrasEspecificas) {
-                    return `Recinto ${recinto.numero} (espaço livre: ${espacoDisponivel} total: ${recinto.tamanho})`;
-                }
-                return null;
-            })
-            .filter(recinto => recinto !== null);
+        const recintosFiltrados = await this.filtraRecintosPorBioma(especie);
+        const recintosViaveis = await Promise.all(recintosFiltrados.map(async recinto => {
+            const espacoDisponivel = await this.calculaEspacoDisponivel(recinto, especie, quantidade);
+            const regrasEspecificas = await this.verificaRegrasEspecificas(recinto, especie, quantidade);
+            if (espacoDisponivel !== null && regrasEspecificas) {
+                return `Recinto ${recinto.numero} (espaço livre: ${espacoDisponivel} total: ${recinto.tamanho})`;
+            }
+            return null;
+        }));
 
-        if (recintosViaveis.length > 0) {
-            return { recintosViaveis };
+        const recintosValidos = recintosViaveis.filter(recinto => recinto !== null);
+
+        if (recintosValidos.length > 0) {
+            return { recintosViaveis: recintosValidos };
         } else {
             return { erro: "Não há recinto viável" };
         }
