@@ -41,14 +41,12 @@ class RecintosZoo {
             return total + (this.animaisPermitidos[animal.especie].tamanho * animal.quantidade);
         }, 0);
 
-        // Se há mais de uma espécie, adiciona 1 unidade de espaço extra
         if (recinto.animais.length > 0 && recinto.animais[0].especie !== especie) {
             espacoOcupado += 1;  
         }
         const espacoNecessario = this.animaisPermitidos[especie].tamanho * quantidade;
         const espacoDisponivel = recinto.tamanho - espacoOcupado;
 
-        // Verifica se há espaço suficiente
         return espacoDisponivel >= espacoNecessario ? espacoDisponivel - espacoNecessario : null;
     }
 
@@ -56,17 +54,14 @@ class RecintosZoo {
         const ehCarnivoro = this.animaisPermitidos[especie].carnivoro;
         const existeCarnivoroNoRecinto = recinto.animais.some(animal => this.animaisPermitidos[animal.especie].carnivoro);
 
-        // Impedir herbívoros com carnívoros e vice-versa
         if ((existeCarnivoroNoRecinto && !ehCarnivoro) || (!existeCarnivoroNoRecinto && ehCarnivoro && recinto.animais.length > 0)) {
             return false;
         }
 
-        // Hipopótamos só podem ficar em "savana e rio"
         if (especie === 'HIPOPOTAMO' && recinto.bioma !== 'savana e rio') {
             return false;
         }
 
-        // Macacos precisam de companhia
         if (especie === 'MACACO') {
             const totalMacacos = recinto.animais.reduce((total, animal) => {
                 return animal.especie === 'MACACO' ? total + animal.quantidade : total;
@@ -95,7 +90,6 @@ class RecintosZoo {
             })
             .filter(recinto => recinto !== null);
 
-        // Se não houver recintos viáveis, retorna o erro
         if (recintosViaveis.length > 0) {
             return { recintosViaveis };
         } else {
