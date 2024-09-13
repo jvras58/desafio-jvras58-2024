@@ -1,12 +1,12 @@
-import { createTables, populate } from './db.js';
+import { openDb, createTables, populate } from './db.js';
 
 
-const dbPath = './zoo.db';
 
 async function init() {
     try {
-        await createTables(dbPath);
-        await populate(dbPath);
+        const db = await openDb();
+        await createTables(db);
+        await populate(db);
         console.log("Banco de dados inicializado com sucesso!");
     } catch (error) {
         console.error("Erro ao inicializar o banco de dados:", error);

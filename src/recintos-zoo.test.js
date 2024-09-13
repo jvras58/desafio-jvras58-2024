@@ -5,7 +5,7 @@ let db;
 
 
 beforeAll(async () => {
-    db = await openDb();
+    db = await openDb(true);
     await createTables(db);
 });
 
