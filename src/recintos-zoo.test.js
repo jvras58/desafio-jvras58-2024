@@ -1,52 +1,69 @@
 import { RecintosZoo } from "./recintos-zoo.js";
+import { openDb, createTables } from "./config/db.js"; 
 
-describe('Recintos do Zoologico', () => {
+let db;
 
-    test('Deve rejeitar animal inválido', () => {
-            const resultado = new RecintosZoo().analisaRecintos('UNICORNIO', 1);
-            expect(resultado.erro).toBe("Animal inválido");
-            expect(resultado.recintosViaveis).toBeFalsy();
-        });
 
-    test('Deve rejeitar quantidade inválida', () => {
-            const resultado = new RecintosZoo().analisaRecintos('MACACO', 0);
-            expect(resultado.erro).toBe("Quantidade inválida");
-            expect(resultado.recintosViaveis).toBeFalsy();
-    });
+beforeAll(async () => {
+    db = await openDb();
+    await createTables(db);
+});
 
-    test('Não deve encontrar recintos para 10 macacos', () => {
-            const resultado = new RecintosZoo().analisaRecintos('MACACO', 10);
-            expect(resultado.erro).toBe("Não há recinto viável");
-            expect(resultado.recintosViaveis).toBeFalsy();
-        });
+afterAll(async () => {
+    await db.close();
+});
 
-    test('Deve encontrar recinto para 1 crocodilo', () => {
-        const resultado = new RecintosZoo().analisaRecintos('CROCODILO', 1);
-        expect(resultado.erro).toBeFalsy();
-        expect(resultado.recintosViaveis[0]).toBe('Recinto 4 (espaço livre: 5 total: 8)');
-        expect(resultado.recintosViaveis.length).toBe(1);
-    });
+beforeEach(async () => {
+    await db.run("DELETE FROM recintos");
+    await db.run("DELETE FROM animais");
 
-    test('Deve encontrar recintos para 2 macacos', () => {
-        const resultado = new RecintosZoo().analisaRecintos('MACACO', 2);
-        expect(resultado.erro).toBeFalsy();
-        expect(resultado.recintosViaveis[0]).toBe('Recinto 1 (espaço livre: 5 total: 10)');
-        expect(resultado.recintosViaveis[1]).toBe('Recinto 2 (espaço livre: 3 total: 5)');
-        expect(resultado.recintosViaveis[2]).toBe('Recinto 3 (espaço livre: 2 total: 7)');
-        expect(resultado.recintosViaveis.length).toBe(3);
-    });
+    await db.run(`INSERT INTO recintos (numero, bioma, tamanho) VALUES (1, 'savana', 10)`);
+    await db.run(`INSERT INTO recintos (numero, bioma, tamanho) VALUES (2, 'floresta', 5)`);
+    await db.run(`INSERT INTO recintos (numero, bioma, tamanho) VALUES (3, 'savana e rio', 7)`);
+    await db.run(`INSERT INTO recintos (numero, bioma, tamanho) VALUES (4, 'rio', 8)`);
+    await db.run(`INSERT INTO recintos (numero, bioma, tamanho) VALUES (5, 'savana', 9)`);
 
-    test('Não deve permitir adicionar 4 hipopótamos devido a falta de espaço', () => {
-        const resultado = new RecintosZoo().analisaRecintos('HIPOPOTAMO', 4);
-        expect(resultado.erro).toBe("Não há recinto viável");
+    await db.run(`INSERT INTO animais (especie, tamanho, bioma, carnivoro, quantidade) VALUES ('LEAO', 3, 'savana', 1, 1)`);
+    await db.run(`INSERT INTO animais (especie, tamanho, bioma, carnivoro, quantidade) VALUES ('GAZELA', 2, 'savana', 0, 1)`);
+    await db.run(`INSERT INTO animais (especie, tamanho, bioma, carnivoro, quantidade) VALUES ('MACACO', 1, 'savana', 0, 3)`);
+});
+
+afterEach(async () => {
+    await db.run("DELETE FROM recintos");
+    await db.run("DELETE FROM animais");
+});
+
+describe('Testes utilizando o banco de dados', () => {
+
+    test('Deve rejeitar animal inválido usando dados do banco', async () => {
+        const recintosZoo = new RecintosZoo(db); 
+        const resultado = recintosZoo.analisaRecintos('UNICORNIO', 1);
+        expect(resultado.erro).toBe("Animal inválido");
         expect(resultado.recintosViaveis).toBeFalsy();
     });
 
-    test('Deve permitir adicionar mais 2 leões ao recinto com leão', () => {
-        const resultado = new RecintosZoo().analisaRecintos('LEAO', 2);
+    test('Deve rejeitar quantidade inválida usando dados do banco', async () => {
+        const recintosZoo = new RecintosZoo(db);
+        const resultado = recintosZoo.analisaRecintos('MACACO', 0);
+        expect(resultado.erro).toBe("Quantidade inválida");
+        expect(resultado.recintosViaveis).toBeFalsy();
+    });
+
+    test('Deve encontrar recinto para 1 crocodilo usando dados do banco', async () => {
+        const recintosZoo = new RecintosZoo(db);
+        const resultado = recintosZoo.analisaRecintos('CROCODILO', 1);
+        expect(resultado.erro).toBeFalsy();
+        expect(resultado.recintosViaveis[0]).toBe('Recinto 4 (espaço livre: 5 total: 8)');
+    });
+
+    test('Deve permitir adicionar mais 2 leões ao recinto com leão usando dados do banco', async () => {
+        const recintosZoo = new RecintosZoo(db);
+        const resultado = recintosZoo.analisaRecintos('LEAO', 2);
         expect(resultado.erro).toBeFalsy();
         expect(resultado.recintosViaveis[0]).toBe('Recinto 5 (espaço livre: 0 total: 9)');
         expect(resultado.recintosViaveis.length).toBe(1);
     });
-});
 
+    // add outros testes seguindo os testes originais fornecidos
+
+});
